@@ -56,3 +56,10 @@ frameQueueLength: 1
 #integrationTime: 1500
 
 #Sensor2D
+
+udpSteramIP: {
+n1: 192,
+n2: 168,
+n3: 10,
+n4: 51,
+}

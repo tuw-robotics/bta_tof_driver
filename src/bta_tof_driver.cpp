@@ -45,6 +45,13 @@
 namespace bta_tof_driver 
 {
 
+/// @autor Markus Bader    
+uint32_t Ip0_Addr = 0x024c; 
+uint32_t Eth0UdpSteramIp0_Addr = 0x024c;  
+uint32_t Eth0UdpSteramIp0_Value = (((uint32_t) 0)  << 8) | (uint32_t) 1;  
+uint32_t Eth0UdpSteramIp1_Addr = 0x024d;  
+uint32_t Eth0UdpSteramIp1_Value = (((uint32_t) 224)  << 8) | (uint32_t) 0; 
+    
 BtaRos::BtaRos(ros::NodeHandle nh_camera,
 	       ros::NodeHandle nh_private,
 	       std::string nodeName) :
@@ -64,9 +71,9 @@ BtaRos::BtaRos(ros::NodeHandle nh_camera,
 	ros::console::notifyLoggerLevelsChanged();
     }*/
     
-    nh_private_.param<std::string> ( "frame_id_camera", frame_id_camera_, "camera" );
-    nh_private_.param<std::string> ( "frame_id_cloud", frame_id_cloud_, "cloud" );
-    nh_private_.param<std::string> ( "frame_id_amplitudes", frame_id_amplitudes_, "amplitudes" );
+    nh_private_.param<std::string> ( "frame_camera", frame_id_camera_, "camera" );
+    nh_private_.param<std::string> ( "frame_cloud", frame_id_cloud_, "cloud" );
+    nh_private_.param<std::string> ( "frame_amplitudes", frame_id_amplitudes_, "amplitudes" );
     
     
     transformStamped.header.stamp = ros::Time::now();
@@ -455,6 +462,26 @@ void BtaRos::parseConfig() {
 	}
 	config_.udpDataIpAddr = udpDataIpAddr_;
     }
+    
+    
+    /// @autor Markus Bader    
+    {
+        if (nh_private_.hasParam(nodeName_+"/udpSteramIP")) {
+            ROS_DEBUG_STREAM("config_.udpSteramIP:");
+            Eth0UdpSteramIp0_Value = 0;
+            Eth0UdpSteramIp1_Value = 0;
+            for (int i = 1; i <= 4; i++) {
+                std::ostringstream to_string;
+                to_string << "";
+                to_string << nodeName_ << "/udpSteramIP/n" << i;
+                nh_private_.getParam(to_string.str(),iusValue);
+                if(i == 1) Eth0UdpSteramIp1_Value |= (((uint32_t) iusValue)  << 8);  
+                if(i == 2) Eth0UdpSteramIp1_Value |= (((uint32_t) iusValue)  << 0); 
+                if(i == 3) Eth0UdpSteramIp0_Value |= (((uint32_t) iusValue)  << 8);  
+                if(i == 4) Eth0UdpSteramIp0_Value |= (((uint32_t) iusValue)  << 0);  
+            }
+        }
+    }
     if(nh_private_.getParam(nodeName_+"/udpDataPort",iusValue)) {
 	config_.udpDataPort = (uint16_t)iusValue;
 	ROS_DEBUG_STREAM("config_.udpDataPort: " << config_.udpDataPort);
@@ -615,9 +642,50 @@ int BtaRos::connectCamera() {
     ROS_INFO_STREAM("Service running: " << (int)BTAisRunning(handle_));
     ROS_INFO_STREAM("Connection up: " << (int)BTAisConnected(handle_));
 
+    
+    /// @autor Markus Bader    
+    {
+    uint32_t registerCount = 1; 
+    status = BTAwriteRegister(handle_, Eth0UdpSteramIp0_Addr, &Eth0UdpSteramIp0_Value, &registerCount);
+    if (status != BTA_StatusOk) {
+        ROS_WARN_STREAM("BTAreadRegister: Could not read Eth0UdpSteramIp0_Addr");
+        ROS_WARN_STREAM("Status: " << status);
+        return -1;
+    }
+    status = BTAwriteRegister(handle_, Eth0UdpSteramIp1_Addr, &Eth0UdpSteramIp1_Value, &registerCount);
+    if (status != BTA_StatusOk) {
+        ROS_WARN_STREAM("BTAreadRegister: Could not read Eth0UdpSteramIp1_Addr");
+        ROS_WARN_STREAM("Status: " << status);
+        return -1;
+    }
+    
+    status = BTAreadRegister(handle_, Eth0UdpSteramIp0_Addr, &Eth0UdpSteramIp0_Value, &registerCount);
+    if (status != BTA_StatusOk) {
+        ROS_WARN_STREAM("BTAreadRegister: Could not read Eth0UdpSteramIp0_Addr");
+        ROS_WARN_STREAM("Status: " << status);
+        return -1;
+    }
+    status = BTAreadRegister(handle_, Eth0UdpSteramIp1_Addr, &Eth0UdpSteramIp1_Value, &registerCount);
+    if (status != BTA_StatusOk) {
+        ROS_WARN_STREAM("BTAreadRegister: Could not read Eth0UdpSteramIp1_Addr");
+        ROS_WARN_STREAM("Status: " << status);
+        return -1;
+    }
+    
+    ROS_INFO_STREAM("Retrieved Register info: \n"
+                    << "Eth0UdpSteramIp: "
+                    << ((Eth0UdpSteramIp1_Value & 0xFF00)>>8) << "."
+                    << ((Eth0UdpSteramIp1_Value & 0x00FF)>>0) << "."
+                    << ((Eth0UdpSteramIp0_Value & 0xFF00)>>8) << "."
+                    << ((Eth0UdpSteramIp0_Value & 0x00FF)>>0)
+                    << "\n");
+    }
     BTAfreeDeviceInfo(deviceInfo);
+    
+
     return 1;
 }
+
 
 int BtaRos::initialize()
 {
