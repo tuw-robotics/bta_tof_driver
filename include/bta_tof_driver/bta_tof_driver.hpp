@@ -135,6 +135,11 @@ public:
      */
     void publishData();
 
+    /**
+    * @return zero if everything went well
+    **/
+    int string_to_ip4 ( const std::string &ip_address, uint32_t &ip_high, uint32_t &ip_low );
+
     //void ampCb(const sensor_msgs::ImagePtr& amp);
 
     //void disCb(const sensor_msgs::ImagePtr& dis);
@@ -148,13 +153,15 @@ private:
     std::string nodeName_;
     camera_info_manager::CameraInfoManager cim_tof_/*, *cim_rgb*/;
     image_transport::ImageTransport it_;
-    image_transport::CameraPublisher pub_amp_, pub_dis_/*, pub_rgb*/;
+    image_transport::CameraPublisher pub_amp_, pub_dis_, pub_mono_/*, pub_rgb*/;
+    
     tf2_ros::StaticTransformBroadcaster pub_tf;
     geometry_msgs::TransformStamped transformStamped;
     ros::Publisher pub_xyz_;
     //ros::Subscriber sub_amp_, sub_dis_;
     boost::shared_ptr<ReconfigureServer> reconfigure_server_;
     bool config_init_;
+    double depth_scale_;
 
     boost::mutex connect_mutex_;
 

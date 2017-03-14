@@ -13,7 +13,7 @@
         <rosparam command="load" file="$(find bta_tof_driver)/launch/bta_tim-eth_3d.yaml" />
   </node>
   
-  <group if="$(arg stage)">
+  <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find bta_tof_driver)/launch/rvizConfig_tof.rviz" />
   </group>
   <group if="$(arg rqt)">
